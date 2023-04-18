@@ -13,50 +13,52 @@ namespace Parser
         public bool isOnDownWeek;
         //public List<string> preps;
         //public List<string> groups;
+
+        public void Print() {
+            Console.WriteLine($"{time} - {name}");
+        }
     }
 
-    public struct DaySchedule
-    {
-        public string weekday;
-        public List<Lession> lessions;
+    public struct DaySchedule {
+        public string weekday = "";
+        public List<Lession> lessions = new List<Lession>();
+
+        public void Print() {
+            Console.WriteLine(weekday);
+            foreach (Lession i in lessions) {
+                i.Print();
+            };
+        }
     }
 
     public struct Schedule 
     {
-        public List<DaySchedule> days;
-        public DaySchedule out_grid;
+        public List<DaySchedule> days = new List<DaySchedule>();
+        public DaySchedule out_grid = new DaySchedule();
+
+        public void Print() {
+            out_grid.Print();
+            foreach (DaySchedule i in days) {
+                i.Print();
+            };
+        }
     }
 
 
 
-    public class Parser
+    public static class Parser
     {
-        
         public const string DEFAULT_URL = "https://guap.ru/rasp/?g=303";
 
-        public string url;
-
-        public Parser(string url = DEFAULT_URL) {
-            this.url = url;
-        }
-
-        public Schedule GetSchedule()
-        {
-            string response = CallUrl(this.url).Result;
-            var linkList = ParseHtml(response);
-            return linkList;
-        }
-
-        public static async Task<string> CallUrl(string fullUrl)
-        {
+        public static async Task<string> getHTML(string url) {
             HttpClient client = new HttpClient();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
             client.DefaultRequestHeaders.Accept.Clear();
-            var response = client.GetStringAsync(fullUrl);
+            var response = client.GetStringAsync(url);
             return await response;
         }
 
-        public Schedule ParseHtml(string html)
+        public static Schedule ParseHtml(string html)
         {
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(html);
@@ -65,9 +67,9 @@ namespace Parser
             var list = new List<DaySchedule>();
             // first element is legend (not need)
             // second element is name of group (not need)
+            var time = "";
+            var day_schedule = new DaySchedule();
             for (var i = 2; i < elements.Count; i++) {
-                var day_schedule = new DaySchedule();
-                var time = "";
 
                 if (elements[i].Name == "h3") { // new day
                     list.Add(day_schedule);
@@ -100,29 +102,27 @@ namespace Parser
                     lession.name = temp2[1].Trim();
                     lession.place = temp2[2].Trim();
                     day_schedule.lessions.Add(lession);
-                    
-
                 };
-                //Console.WriteLine(elements[i].InnerText);
             }
-            //Console.WriteLine(string.Join(" ", list));
-
-            Console.WriteLine(list[0]);
+            list.Add(day_schedule);
             var schedule = new Schedule();
-
+            schedule.out_grid = list[2];
+            list.RemoveRange(0, 3);
+            schedule.days = list;
             return schedule;
-
         }
 
+        public static Schedule GetSchedule(string url = DEFAULT_URL)
+        {
+            return ParseHtml(getHTML(url).Result);
+        }
 
     }
 
     public class Program {
-        async static Task Main() {
-            var temp = new Parser();
-            Console.WriteLine(string.Join(", ", temp.GetSchedule()));
+        static void Main() {
+            var answer = Parser.GetSchedule();
+            answer.Print();
         }
     }
-
 }
-
