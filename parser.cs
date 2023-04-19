@@ -1,5 +1,6 @@
 using HtmlAgilityPack;
 using System.Net;
+using System;
 
 namespace Parser
 {
@@ -54,7 +55,7 @@ namespace Parser
             HttpClient client = new HttpClient();
             ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls13;
             client.DefaultRequestHeaders.Accept.Clear();
-            var response = client.GetStringAsync(url);
+            Task<string> response = client.GetStringAsync(url);
             return await response;
         }
 
@@ -62,14 +63,14 @@ namespace Parser
         {
             HtmlDocument htmlDoc = new HtmlDocument();
             htmlDoc.LoadHtml(html);
-            var elements = htmlDoc.DocumentNode.SelectNodes("//div[@class='result']")[0].ChildNodes;
+            HtmlAgilityPack.HtmlNodeCollection elements = htmlDoc.DocumentNode.SelectNodes("//div[@class='result']")[0].ChildNodes;
   
-            var list = new List<DaySchedule>();
+            List<DaySchedule> list = new List<DaySchedule>();
             // first element is legend (not need)
             // second element is name of group (not need)
-            var time = "";
-            var day_schedule = new DaySchedule();
-            for (var i = 2; i < elements.Count; i++) {
+            string time = "";
+            DaySchedule day_schedule = new DaySchedule();
+            for (int i = 2; i < elements.Count; i++) {
 
                 if (elements[i].Name == "h3") { // new day
                     list.Add(day_schedule);
@@ -84,10 +85,10 @@ namespace Parser
                         time = "None";
                     };
                 } else if (elements[i].Name == "div") { // new description
-                    var lession = new Lession();
+                    Lession lession = new Lession();
                     lession.time = time;
-                    var temp0 = elements[i].ChildNodes[0];
-                    var temp1 = temp0.InnerText.Replace("&#9660;", "&#9650;").Split("&#9650;");
+                    HtmlAgilityPack.HtmlNode temp0 = elements[i].ChildNodes[0];
+                    string[] temp1 = temp0.InnerText.Replace("&#9660;", "&#9650;").Split("&#9650;");
                     List<string> temp2;
                     if (elements[i].ChildNodes[0].ChildNodes.Count ==  3) {
                         lession.isOnUpWeek = true;
@@ -105,7 +106,7 @@ namespace Parser
                 };
             }
             list.Add(day_schedule);
-            var schedule = new Schedule();
+            Schedule schedule = new Schedule();
             schedule.out_grid = list[2];
             list.RemoveRange(0, 3);
             schedule.days = list;
@@ -121,7 +122,7 @@ namespace Parser
 
     public class Program {
         static void Main() {
-            var answer = Parser.GetSchedule();
+            Schedule answer = Parser.GetSchedule();
             answer.Print();
         }
     }
